@@ -6,3 +6,5 @@ Citation
 Soubeyrand M., Girardin P. M., Boulanger Y. (submitted) Simulated impacts of the 2023 megadrought on black spruce productivity across Canada. Journal of Geophysical Research: Biogeosciences
 
 Please cite this article for any work that re-uses this code.
+
+The 2023 fire shapefile can be found [here](https://cwfis.cfs.nrcan.gc.ca/downloads/nbac/NBAC_2023_20250506.zip).
