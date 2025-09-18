@@ -1,3 +1,5 @@
+#Script for the figure 7
+
 rm(list = ls())
 
 library(tidyverse)
@@ -15,9 +17,7 @@ library(modifiedmk)
 canada <- ne_countries(scale = "medium", country = "Canada", returnclass = "sf")
 US <- ne_countries(scale = "medium", country = "United States of America", returnclass = "sf")
 
-
-#res <- readRDS("H:/Maxence/results/res_mean_by_clim.rds")
-#res <- readRDS("U:/YBoulanger/Maxence/results/res_100_by_clim_cells.rds")
+#Opening the results
 res <- readRDS("C:/Users/msoubeyr/OneDrive - NRCan RNCan/Documents/NPP_drought/github/results/res_mean_by_clim_norm.rds")
 
 length(unique(res$Id))
@@ -30,32 +30,19 @@ res <- res %>%
   filter(`sp_(dom)` == "Black_spruce", Forest_type == "BS") %>%
   dplyr::select(clim_id, ClimateYear, NPP=NPP_sd) %>%
   group_by(clim_id) %>%
-  filter(any(NPP != 0)) %>%  # Garde uniquement les clim_id avec au moins un NPP différent de 0
+  filter(any(NPP != 0)) %>%
   ungroup()
-
-
-# res2 <- res %>%
-#   filter(clim_id == "10053")
-# 
-# mk_test=tfpwmk(res2$NPP)
-# sen_slope=mk_test["Sen's Slope"]
-# sens.slope(res2$NPP, as.numeric(res2$ClimateYear))
-# 
-# sens.slope(NPP, ClimateYear)$estimates
-
-# write.csv(res, "U:/YBoulanger/Maxence/res_mean_by_clim.csv", 
-#           row.names = F, quote = F)
 
 trend_npp <- res %>%
   mutate(ClimateYear=as.numeric(ClimateYear)) %>% 
   group_by(clim_id) %>%
   summarize(
-    slope_NPP = sens.slope(NPP, ClimateYear)$estimates,  # Pente de Theil-Sen
+    slope_NPP = sens.slope(NPP, ClimateYear)$estimates,  #Theil-Sen slope
     pval_NPP = sens.slope(NPP, ClimateYear)$p.value
     
   )
 
-grid <- readRDS("C:/Users/msoubeyr/OneDrive - NRCan RNCan/Documents/NPP_drought/github/results/grid.rds")
+grid <- readRDS("results/grid.rds")
 
 st_crs(grid) <- 4326
 
@@ -72,6 +59,7 @@ sum(is.na(trend_grid$slope_NPP))/length(trend_grid$slope_NPP)*100
 
 sum(trend_grid$slope_NPP>0, na.rm = T)/length(trend_grid$slope_NPP)*100
 
+#Plot of whole trend (from 1950-2024)
 trend_plot <- ggplot() +
   geom_sf(data = canada, color = "black") +
   geom_sf(data = US, color = "black") +
@@ -87,39 +75,39 @@ trend_plot <- ggplot() +
   theme(
     axis.title = element_text(size = 16),   
     axis.text = element_text(size = 14),
-    legend.title = element_text(size = 12),  # Taille du titre de la légende
+    legend.title = element_text(size = 12), 
     legend.text = element_text(size = 12))
 
 
 get_breakpoint <- function(data) {
-  model <- lm(NPP ~ ClimateYear, data = data)  # Régression linéaire simple
+  model <- lm(NPP ~ ClimateYear, data = data)
   
   seg_model <- tryCatch(segmented(model, seg.Z = ~ClimateYear), 
                         error = function(e) NA)
   
-  # Extraire le breakpoint estimé
+  # extract estimate breakpoint
   breakpoint <- seg_model$psi[, "Est."]
   
-  # Test de Davies pour valider la rupture
+  # Davies test 
   pvalue <- tryCatch(davies.test(model, seg.Z = ~ClimateYear)$p.value, error = function(e) NA)
   
-  # Extraire les pentes et les erreurs standards du modèle `segmented`
+  # Extract slopes standard errors from the segmented model
   coef_summary <- summary(seg_model)$coefficients
   
   slope_before <- coef_summary["ClimateYear", "Estimate"]
   se_before <- coef_summary["ClimateYear", "Std. Error"]
   
   slope_after <- slope_before + coef_summary["U1.ClimateYear", "Estimate"]
-  se_after <- sqrt(se_before^2 + coef_summary["U1.ClimateYear", "Std. Error"]^2)  # Erreur standard combinée
+  se_after <- sqrt(se_before^2 + coef_summary["U1.ClimateYear", "Std. Error"]^2)  #Standard error
   
   trend_before <- ifelse(slope_before > 0, "up", "down")
   trend_after <- ifelse(slope_after > 0, "up", "down")
   
-  # P-values directement extraites du modèle `segmented()`
+  #P-values directly extracted from the segmented model
   pval_before <- coef_summary["ClimateYear", "Pr(>|t|)"]
   pval_after <- coef_summary["U1.ClimateYear", "Pr(>|t|)"]
   
-  # Test de changement de pente
+  # Slope change test
   slope_change <- coef_summary["U1.ClimateYear", "Estimate"]
   pval_change <- coef_summary["U1.ClimateYear", "Pr(>|t|)"]
   
@@ -137,19 +125,18 @@ data= res %>%
 
 get_breakpoint(data)
 
-breakpoint_npp <- res %>%
-  mutate(ClimateYear = as.numeric(ClimateYear)) %>%
-  group_by(clim_id) %>%
-  nest() %>%
-  mutate(results = map(data, get_breakpoint)) %>%
-  unnest(results)
-
+#The following commands take 10 minutes to run
+#I run it one times and save the results
+# breakpoint_npp <- res %>%
+#   mutate(ClimateYear = as.numeric(ClimateYear)) %>%
+#   group_by(clim_id) %>%
+#   nest() %>%
+#   mutate(results = map(data, get_breakpoint)) %>%
+#   unnest(results)
 
 #saveRDS(breakpoint_npp, "U:/YBoulanger/Maxence/prep_input/breakpoint_npp.rds")
+#Load the results from the previous command
 breakpoint_npp <- readRDS("C:/Users/msoubeyr/OneDrive - NRCan RNCan/Documents/NPP_drought/github/results/breakpoint_npp.rds")
-
-# breakpoint_npp <- breakpoint_npp %>% 
-#   filter(pval_after<0.05)
 
 breakpoint_grid <- st_sf(geometry = grid)  %>%
   mutate(clim_id = as.character(row_number()))  %>%
@@ -162,12 +149,14 @@ trend_after_df <- breakpoint_grid %>%
                                pvalue >= alpha_threshold & pval_after >= alpha_threshold ~ "no breakpoint",
                                pval_after >= alpha_threshold ~ "no trend"))
 
-table(trend_after_df$trend_after)/sum(table(trend_after_df$trend_after)) #Prop breakpoint
+table(trend_after_df$trend_after)/sum(table(trend_after_df$trend_after)) 
 table(trend_after_df$trend_after)/(sum(table(trend_after_df$trend_after))-5719)
 
 
 trend_after_df$trend_after <- factor(trend_after_df$trend_after, levels = c("up", "down", "no trend", "no breakpoint"))
 
+#The plot
+#trend after breakpoint
 trend_after <- ggplot() +
   geom_sf(data = canada, color = "black") +
   geom_sf(data = US, color = "black") +
@@ -203,7 +192,7 @@ table(trend_before_df$trend_before)
 
 trend_before_df$trend_before <- factor(trend_before_df$trend_before, levels = c("up", "down", "no trend", "no breakpoint"))
 
-
+#trend before breakpoint
 trend_before <- ggplot() +
   geom_sf(data = canada, color = "black") +
   geom_sf(data = US, color = "black") +
@@ -232,7 +221,7 @@ bp_year_df <- breakpoint_grid  %>%
   mutate(breakpoint=case_when(pvalue >= 0.05 ~ NA,
                               .default=breakpoint)) 
   
-
+#plot of breakpoint year
 bp_year <- ggplot() +
   geom_sf(data = canada, color = "black") +
   geom_sf(data = US, color = "black") +
@@ -268,12 +257,10 @@ png(filename = "C:/Users/msoubeyr/OneDrive - NRCan RNCan/Documents/NPP_drought/g
 trend_plots
 dev.off()
 
-#Parmi les cells qui continuent d'augmenter, est ce que les pentes diminuent ou augmente? 
+#Among the cells that continue to increase, do the slopes decrease or increase? 
 
 head(breakpoint_grid)
 a=breakpoint_grid %>% 
   filter(slope_before >0, slope_after>0, pvalue<alpha_threshold)
 
 sum(a$slope_before<a$slope_after)/length(a$slope_after)
-
-#FIN

@@ -1,3 +1,5 @@
+#Script for the figure 3
+
 rm(list=ls())
 
 library(tidyverse)
@@ -11,16 +13,18 @@ library(ggpubr)
 canada <- ne_countries(scale = "medium", country = "Canada", returnclass = "sf")
 US <- ne_countries(scale = "medium", country = "United States of America", returnclass = "sf")
 
-res <- readRDS("C:/Users/msoubeyr/OneDrive - NRCan RNCan/Documents/NPP_drought/github/results/res_mean_by_clim_norm.rds") %>% 
+#Opening the simulation results
+res <- readRDS("results/res_mean_by_clim_norm.rds") %>% 
   filter(`sp_(dom)`=="Black_spruce",
          Forest_type=="BS")
 
+#Compute precipitation, temperature and vpd 2023 anomalies with the 1950-2024 reference period
 anomalie <- res %>%
   group_by(clim_id) %>%
   summarize(mean_ppt = mean(Rain_MJJA[ClimateYear >= 1950 & ClimateYear <= 2024], na.rm = TRUE),
             mean_temp = mean(tMoy_MJJA[ClimateYear >= 1950 & ClimateYear <= 2024], na.rm = TRUE),
             mean_VPD = mean(vpd_MJJA[ClimateYear >= 1950 & ClimateYear <= 2024], na.rm = TRUE)) %>%
-  left_join(res, by = "clim_id") %>%  # Joindre toutes les ann?es
+  left_join(res, by = "clim_id") %>%
   mutate(anomaly_ppt = Rain_MJJA - mean_ppt,
          anomaly_temp = tMoy_MJJA - mean_temp,
          anomaly_VPD = vpd_MJJA - mean_VPD) %>%
@@ -30,26 +34,26 @@ anomalie <- res %>%
             temp_anomaly=mean(anomaly_temp),
             VPD_anomaly=mean(anomaly_VPD)) %>% 
   pivot_longer(
-    cols = ends_with("_anomaly"),          # Sélectionner uniquement les colonnes se terminant par "_rank"
-    names_to = "variable",         # Nouveau nom pour la colonne des variables
-    values_to = "Anomaly"            # Nouveau nom pour la colonne des valeurs
+    cols = ends_with("_anomaly"),   
+    names_to = "variable",        
+    values_to = "Anomaly"           
   )
 
 anomalie2 <-anomalie %>% 
   group_by(ClimateYear, variable) %>% 
   summarize(Anomaly=mean(Anomaly)) %>% 
   mutate(Year=ifelse(ClimateYear=="2023", "2023", "1950-2024"))
-set.seed(1)
 
+
+#The figure
+#Temperature
 temp <- ggplot() +
   geom_boxplot(data = filter(anomalie2, variable == "temp_anomaly"), aes(y = Anomaly, x = variable)) +
   geom_point(data = filter(anomalie2, variable == "temp_anomaly"), 
-             aes(y = Anomaly, x = variable, color = Year),  # Augmenter la taille des points de 2023
+             aes(y = Anomaly, x = variable, color = Year),
              position = position_jitter(width = 0.2, height = 0),
              size=3) +
   scale_color_manual(values = c("blue", "red")) +
-  # geom_point(data = filter(anomalie2, variable == "temp_anomaly", ClimateYear=="2023"), 
-  #            aes(y = Anomaly, x = variable), color="red", size=12) +
   ylim(min = -max(abs(filter(anomalie2, variable == "temp_anomaly")$Anomaly)), 
        max = max(abs(filter(anomalie2, variable == "temp_anomaly")$Anomaly))) +
   xlab(NULL)+
@@ -58,20 +62,17 @@ temp <- ggplot() +
   theme(axis.text.x = element_blank(),
         axis.title = element_text(size = 14),   
         axis.text = element_text(size = 12),
-        legend.title = element_text(size = 12),  # Taille du titre de la légende
+        legend.title = element_text(size = 12),  
         legend.text = element_text(size = 12))
   
-temp
-
+#Precipitation
 ppt <- ggplot() +
   geom_boxplot(data = filter(anomalie2, variable == "ppt_anomaly"), aes(y = Anomaly, x = variable)) +
   geom_point(data = filter(anomalie2, variable == "ppt_anomaly"), 
-             aes(y = Anomaly, x = variable, color = Year),  # Augmenter la taille des points de 2023
+             aes(y = Anomaly, x = variable, color = Year),
              position = position_jitter(width = 0.2, height = 0),
              size=3) +
   scale_color_manual(values = c("blue", "red")) +
-  # geom_point(data = filter(anomalie2, variable == "temp_anomaly", ClimateYear=="2023"), 
-  #            aes(y = Anomaly, x = variable), color="red", size=12) +
   ylim(min = -max(abs(filter(anomalie2, variable == "ppt_anomaly")$Anomaly)), 
        max = max(abs(filter(anomalie2, variable == "ppt_anomaly")$Anomaly))) +
   xlab(NULL)+
@@ -80,20 +81,18 @@ ppt <- ggplot() +
   theme(axis.text.x = element_blank(),
         axis.title = element_text(size = 14),   
         axis.text = element_text(size = 12),
-        legend.title = element_text(size = 12),  # Taille du titre de la légende
+        legend.title = element_text(size = 12), 
         legend.text = element_text(size = 12))
 
-ppt
 
+#VPD
 vpd <- ggplot() +
   geom_boxplot(data = filter(anomalie2, variable == "VPD_anomaly"), aes(y = Anomaly, x = variable)) +
   geom_point(data = filter(anomalie2, variable == "VPD_anomaly"), 
-             aes(y = Anomaly, x = variable, color = Year),  # Augmenter la taille des points de 2023
+             aes(y = Anomaly, x = variable, color = Year), 
              position = position_jitter(width = 0.2, height = 0),
              size=3) +
   scale_color_manual(values = c("blue", "red")) +
-  # geom_point(data = filter(anomalie2, variable == "temp_anomaly", ClimateYear=="2023"), 
-  #            aes(y = Anomaly, x = variable), color="red", size=12) +
   ylim(min = -max(abs(filter(anomalie2, variable == "VPD_anomaly")$Anomaly)), 
        max = max(abs(filter(anomalie2, variable == "VPD_anomaly")$Anomaly))) +
   xlab(NULL)+
@@ -102,22 +101,21 @@ vpd <- ggplot() +
   theme(axis.text.x = element_blank(),
         axis.title = element_text(size = 14),   
         axis.text = element_text(size = 12),
-        legend.title = element_text(size = 12),  # Taille du titre de la légende
+        legend.title = element_text(size = 12),  
         legend.text = element_text(size = 12))
 
-vpd
-
-# Faire la NPP
+#NPP anomalies
 res <- res %>% 
   filter(`sp_(dom)`=="Black_spruce",
          Forest_type=="BS") %>% 
   ungroup() %>% 
   dplyr::select(clim_id, ClimateYear, NPP_sd)
 
-grid <- readRDS("C:/Users/msoubeyr/OneDrive - NRCan RNCan/Documents/NPP_drought/github/results/grid.rds")
+grid <- readRDS("results/grid.rds")
 
 st_crs(grid) <- 4326
 
+#Put it the grid to extract values
 NPP_grid <- st_sf(geometry = grid)  %>%
   mutate(clim_id = as.character(row_number()))  %>%
   filter(clim_id %in% unique(res$clim_id)) %>% 
@@ -128,6 +126,7 @@ NPP_grid <- st_sf(geometry = grid)  %>%
   mutate(Year=ifelse(ClimateYear=="2023", "2023", "1950-2024")) %>% 
   mutate(x="x")
 
+#NPP figure
 NPP <- ggplot() +
   geom_boxplot(data = NPP_grid, aes(y = NPP_sd, x=x)) +
   geom_point(data = NPP_grid, 
@@ -148,19 +147,19 @@ NPP <- ggplot() +
     legend.title = element_text(size = 12),  # Taille du titre de la légende
     legend.text = element_text(size = 12))
 
-NPP
-
+#Combined the NPP boxplot and the climate plots
 combined_plots <- ggarrange(NPP, temp, ppt, vpd, 
           ncol=4, nrow=1, 
           common.legend = T, legend="bottom",
           labels=c("A", "B", "C", "D"))
 
-png(filename = "C:/Users/msoubeyr/OneDrive - NRCan RNCan/Documents/NPP_drought/github/figures/boxplot_anomalies.png", 
+#Save the file
+png(filename = "figures/boxplot_anomalies.png", 
     width=9, height=5, units = "in", res=500)
 combined_plots
 dev.off()
 
-pdf(file = "C:/Users/msoubeyr/OneDrive - NRCan RNCan/Documents/NPP_drought/github/figures/boxplot_anomalies.pdf", 
+pdf(file = "figures/boxplot_anomalies.pdf", 
     width=9, height=5)
 combined_plots
 dev.off()

@@ -1,3 +1,5 @@
+#Script for the figure 4
+
 rm(list=ls())
 
 library(tidyverse)
@@ -11,16 +13,18 @@ library(ggpubr)
 canada <- ne_countries(scale = "medium", country = "Canada", returnclass = "sf")
 US <- ne_countries(scale = "medium", country = "United States of America", returnclass = "sf")
 
-res <- readRDS("C:/Users/msoubeyr/OneDrive - NRCan RNCan/Documents/NPP_drought/github/results/res_mean_by_clim_norm.rds") %>% 
+#opening the results
+res <- readRDS("results/res_mean_by_clim_norm.rds") %>% 
   filter(`sp_(dom)`=="Black_spruce",
          Forest_type=="BS")
 
+#Compute the anomalies in each pixel
 anomalie <- res %>%
   group_by(clim_id) %>%
   summarize(mean_ppt = mean(Rain_MJJA[ClimateYear >= 1950 & ClimateYear <= 2022], na.rm = TRUE),
             mean_temp = mean(tMoy_MJJA[ClimateYear >= 1950 & ClimateYear <= 2022], na.rm = TRUE),
             mean_VPD = mean(vpd_MJJA[ClimateYear >= 1950 & ClimateYear <= 2022], na.rm = TRUE)) %>%
-  left_join(res, by = "clim_id") %>%  # Joindre toutes les ann?es
+  left_join(res, by = "clim_id") %>%
   mutate(anomaly_ppt = Rain_MJJA - mean_ppt,
          anomaly_temp = tMoy_MJJA - mean_temp,
          anomaly_VPD = vpd_MJJA - mean_VPD) %>%
@@ -30,29 +34,13 @@ anomalie <- res %>%
             temp_anomaly=mean(anomaly_temp),
             VPD_anomaly=mean(anomaly_VPD)) %>% 
   pivot_longer(
-    cols = ends_with("_anomaly"),          # Sélectionner uniquement les colonnes se terminant par "_rank"
-    names_to = "variable",         # Nouveau nom pour la colonne des variables
-    values_to = "Anomaly"            # Nouveau nom pour la colonne des valeurs
+    cols = ends_with("_anomaly"),    
+    names_to = "variable",        
+    values_to = "Anomaly"          
   )
 
-# ggplot(anomalie, aes(x=ppt, y=temp, color=NPP, label=ClimateYear)) +
-#   geom_point() +
-#   geom_text(nudge_y = 0.15) +
-#   scale_color_gradient(low = "red", high = "blue") +
-#   geom_hline(yintercept=0, size=1, linetype="dashed") +
-#   geom_vline(xintercept=0, size=1, linetype="dashed") +
-#   annotate("text", x = max(anomalie$ppt), y = max(anomalie$temp), 
-#            label = "Warmer and wetter", hjust = 1, vjust = 1, size = 5) +
-#   annotate("text", x = max(anomalie$ppt), y = min(anomalie$temp), 
-#            label = "Cooler and wetter", hjust = 1, vjust = 0, size = 5) +
-#   annotate("text", x = min(anomalie$ppt), y = max(anomalie$temp), 
-#            label = "Warmer and drier", hjust = 0, vjust = 1, size = 5) +
-#   annotate("text", x = min(anomalie$ppt), y = min(anomalie$temp), 
-#            label = "Cooler and drier", hjust = 0, vjust = 0, size = 5)
-
-
-
-grid <- readRDS("C:/Users/msoubeyr/OneDrive - NRCan RNCan/Documents/NPP_drought/github/results/grid.rds")
+#opening the grid and join the anomalies with the grid
+grid <- readRDS("results/grid.rds")
 
 st_crs(grid) <- 4326
 
@@ -61,6 +49,7 @@ anomalie_grid <- st_sf(geometry = grid)  %>%
   filter(clim_id %in% unique(res$clim_id)) %>% 
   left_join(anomalie)
 
+#precipitation anomalies
 prec_an <- ggplot() +
   geom_sf(data = canada, color = "black") +
   geom_sf(data = US, color = "black") +
@@ -78,6 +67,7 @@ prec_an <- ggplot() +
     axis.text = element_text(size = 14) 
   )
 
+#Temperature anomalies
 temp_an <- ggplot() +
   geom_sf(data = canada, color = "black") +
   geom_sf(data = US, color = "black") +
@@ -95,6 +85,7 @@ temp_an <- ggplot() +
     axis.text = element_text(size = 14) 
   )
 
+#VPD anomalies
 vpd_an <- ggplot() +
   geom_sf(data = canada, color = "black") +
   geom_sf(data = US, color = "black") +
@@ -112,6 +103,7 @@ vpd_an <- ggplot() +
     axis.text = element_text(size = 14) 
   )
 
+#The ranking of 2023 in the 1950-2024 period
 rank_clim <- res %>% 
   dplyr::select(clim_id, ClimateYear, vpd_MJJA, tMoy_MJJA, Rain_MJJA) %>% 
   group_by(clim_id) %>% 
@@ -126,11 +118,13 @@ rank_clim <- res %>%
   mutate(variable=str_remove_all(variable, "_rank")) %>% 
   dplyr::select(-vpd_MJJA,  -tMoy_MJJA,  -Rain_MJJA)
 
+#Put the rank in grid
 rank_grid <- st_sf(geometry = grid)  %>%
   mutate(clim_id = as.character(row_number()))  %>%
   filter(clim_id %in% unique(res$clim_id)) %>% 
   left_join(rank_clim)
 
+#Precipitation rank
 prec_rank <- ggplot() +
   geom_sf(data = canada, color = "black") +
   geom_sf(data = US, color = "black") +
@@ -149,6 +143,7 @@ prec_rank <- ggplot() +
     axis.text = element_text(size = 14) 
   )
 
+#Temperature rank
 temp_rank <- ggplot() +
   geom_sf(data = canada, color = "black") +
   geom_sf(data = US, color = "black") +
@@ -167,6 +162,7 @@ temp_rank <- ggplot() +
     axis.text = element_text(size = 14) 
   )
 
+#Vpd rank
 vpd_rank <- ggplot() +
   geom_sf(data = canada, color = "black") +
   geom_sf(data = US, color = "black") +
@@ -185,12 +181,12 @@ vpd_rank <- ggplot() +
     axis.text = element_text(size = 14) 
   )
 
-#Pour la NPP:
-res <- readRDS("C:/Users/msoubeyr/OneDrive - NRCan RNCan/Documents/NPP_drought/github/results/res_mean_by_clim_norm.rds")
+#For the NPP
+res <- readRDS("results/res_mean_by_clim_norm.rds")
 
 str(res)
 
-#####
+#Compute NPP
 res <- res %>% 
   filter(`sp_(dom)`=="Black_spruce",
          Forest_type=="BS") %>% 
@@ -205,6 +201,7 @@ NPP_grid <- st_sf(geometry = grid)  %>%
   filter(clim_id %in% unique(res$clim_id)) %>% 
   left_join(res) 
 
+#NPP anomalies
 NPP_an <- ggplot() +
   geom_sf(data = canada, color = "black") +
   geom_sf(data = US, color = "black") +
@@ -223,6 +220,7 @@ NPP_an <- ggplot() +
     axis.text = element_text(size = 14) 
   )
 
+#NPP rank
 NPP_rank <- ggplot() +
   geom_sf(data = canada, color = "black") +
   geom_sf(data = US, color = "black") +
@@ -244,18 +242,19 @@ NPP_rank <- ggplot() +
 
 library(ggpubr)
 
+#Combined plots
 plots <- ggarrange(NPP_an, NPP_rank, temp_an, temp_rank, 
                    prec_an, prec_rank, vpd_an, vpd_rank,
                    ncol=2, nrow=4, 
                    labels = c("A", "B", "C", "D", "E", "F", "G", "H"))
 
 #Save them
-pdf(file = "C:/Users/msoubeyr/OneDrive - NRCan RNCan/Documents/NPP_drought/github/figures/anomalies_rank_2023.pdf", 
+pdf(file = "figures/anomalies_rank_2023.pdf", 
     width=11, height=8)
 plots
 dev.off()
 
-png(filename = "C:/Users/msoubeyr/OneDrive - NRCan RNCan/Documents/NPP_drought/github/figures/anomalies_rank_2023.png", 
+png(filename = "figures/anomalies_rank_2023.png", 
     width=11, height=8, units = "in", res=500)
 plots
 dev.off()
