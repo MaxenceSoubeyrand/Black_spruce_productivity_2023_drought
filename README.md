@@ -8,3 +8,5 @@ Soubeyrand M., Girardin P. M., Boulanger Y. (submitted) Simulated impacts of the
 Please cite this article for any work that re-uses this code.
 
 The 2023 fire shapefile can be found [here](https://cwfis.cfs.nrcan.gc.ca/downloads/nbac/NBAC_2023_20250506.zip).
+
+The raw results data file can be provided upon request at maxence.soubeyrand@uqat.ca
