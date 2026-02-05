@@ -1,9 +1,9 @@
-# Simulated impacts of the 2023 megadrought on black spruce productivity across Canada
+# Simulated impacts of the 2023 megadrought on black spruce potential productivity across Canada
 
-This repository contains the R code and the results data to retrieve the graphs from the "DOI of the article when available" study. We aimed to determine if future climate and competition are factors that prevent the colonization of temperate species, i.e., sugar maple, red maple, and yellow birch, from becoming established just above their continuous northern limit of distribution.
+This repository contains the R code and the results data to retrieve the graphs from the "DOI of the article when available" study. We aimed to determine the impacts of the 2023 mega-drought on black spruce productivity in Canada. The aim was also to determine trends in productivity from 1950 to 2024 in Canada.
 
 Citation
-Soubeyrand M., Girardin P. M., Boulanger Y. (submitted) Simulated impacts of the 2023 megadrought on black spruce productivity across Canada. Journal of Geophysical Research: Biogeosciences
+Soubeyrand M., Girardin P. M., Boulanger Y. (submitted) Simulated impacts of the 2023 megadrought on black spruce potential productivity across Canada. Journal of Geophysical Research: Biogeosciences
 
 Please cite this article for any work that re-uses this code.
 
